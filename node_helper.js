@@ -20,27 +20,44 @@ module.exports = NodeHelper.create({
   getChannelStatus: async function () {
     this.sendSocketNotification('CHANNEL_STATUS', 'pending');
 
-    const browser = await playwright.chromium.launch({ headless: false });
+    const browser = await playwright.chromium.launch();
     const page = await browser.newPage();
 
-    const channel = '@GoodGood';
-    // const channel = '@LofiGirl';
+    // const channel = '@GoodGood';
+    const channel = '@LofiGirl';
 
     await page.goto(`https://www.youtube.com/${channel}/live`);
 
     const terms = page.getByText('Before you continue to YouTube');
 
-    if (await terms.isVisible()) {
-      await page.getByText(/Reject all/i).click();
-      await page.pause();
+    try {
+      await terms.waitFor({ timeout: 5000 });
+      console.log('click');
+      await page.getByRole('button', { name: 'Reject all' }).click();
+    } catch {
+      console.log(await page.locator('body').innerHTML());
+      console.log('No cookie message');
     }
 
-    const node1 = await page.getByText('Started streaming on').count();
+    const streamingLocator = page
+      .locator('#description-inner')
+      .getByText(/^Started streaming on/);
 
-    this.sendSocketNotification('CHANNEL_STATUS', {
-      goodgood: node1,
-    });
+    let streaming;
+
+    try {
+      await streamingLocator.waitFor({ timeout: 5000 });
+      streaming = true;
+    } catch {
+      streaming = false;
+    }
+    console.log(page.url());
+    console.log(streaming);
 
     await browser.close();
+
+    this.sendSocketNotification('CHANNEL_STATUS', {
+      streaming,
+    });
   },
 });

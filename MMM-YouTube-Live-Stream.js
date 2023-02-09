@@ -19,7 +19,14 @@ Module.register('MMM-YouTube-Live-Stream', {
   socketNotificationReceived: function (notification, payload) {
     switch (notification) {
       case 'CHANNEL_STATUS': {
-        Log.info(payload);
+        if (payload.status === 'ERROR') {
+          Log.error(payload.message);
+          return;
+        }
+
+        if (payload.status === 'DONE') {
+          Log.info(`Channel is ${payload.streaming ? '' : 'not '}streaming`);
+        }
         break;
       }
       default: {

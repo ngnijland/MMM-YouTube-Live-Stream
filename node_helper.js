@@ -18,25 +18,25 @@ module.exports = NodeHelper.create({
   },
 
   getChannelStatus: async function () {
-    this.sendSocketNotification('CHANNEL_STATUS', 'pending');
+    this.sendSocketNotification('CHANNEL_STATUS', { status: 'pending' });
 
     const browser = await playwright.chromium.launch();
-    const page = await browser.newPage();
+    const context = await browser.newContext({ locale: 'en-US' });
+    const page = await context.newPage();
 
     // const channel = '@GoodGood';
     const channel = '@LofiGirl';
 
     await page.goto(`https://www.youtube.com/${channel}/live`);
 
-    const terms = page.getByText('Before you continue to YouTube');
-
     try {
-      await terms.waitFor({ timeout: 5000 });
-      console.log('click');
       await page.getByRole('button', { name: 'Reject all' }).click();
     } catch {
-      console.log(await page.locator('body').innerHTML());
-      console.log('No cookie message');
+      this.sendSocketNotification('CHANNEL_STATUS', {
+        status: 'ERROR',
+        message:
+          'Playwright couldn\'t cick "Reject all" in cookie notice. Maybe the YouTube made changes in the page?',
+      });
     }
 
     const streamingLocator = page
@@ -46,17 +46,16 @@ module.exports = NodeHelper.create({
     let streaming;
 
     try {
-      await streamingLocator.waitFor({ timeout: 5000 });
+      await streamingLocator.waitFor();
       streaming = true;
     } catch {
       streaming = false;
     }
-    console.log(page.url());
-    console.log(streaming);
 
     await browser.close();
 
     this.sendSocketNotification('CHANNEL_STATUS', {
+      status: 'DONE',
       streaming,
     });
   },

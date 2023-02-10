@@ -43,7 +43,7 @@ module.exports = NodeHelper.create({
     let streaming;
 
     try {
-      await streamingLocator.waitFor();
+      await streamingLocator.waitFor({ timeout: 10000 });
       streaming = true;
     } catch {
       streaming = false;

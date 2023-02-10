@@ -13,7 +13,16 @@ Module.register('MMM-YouTube-Live-Stream', {
   start: function () {
     Log.info(`Starting module: ${this.name}`);
 
-    this.sendSocketNotification('GET_CHANNEL_STATUS');
+    this.channel = this.config.channel;
+
+    if (typeof this.channel !== 'string' && this.channel !== '') {
+      Log.error(
+        `"${this.channel}" is not a supported value. Please enter a valid channel name`
+      );
+      return;
+    }
+
+    this.sendSocketNotification('GET_CHANNEL_STATUS', this.channel);
   },
 
   socketNotificationReceived: function (notification, payload) {

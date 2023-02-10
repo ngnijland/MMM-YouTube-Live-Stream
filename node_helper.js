@@ -5,7 +5,7 @@ module.exports = NodeHelper.create({
   socketNotificationReceived: function (notification, payload) {
     switch (notification) {
       case 'GET_CHANNEL_STATUS': {
-        this.getChannelStatus();
+        this.getChannelStatus(payload);
         break;
       }
       default: {
@@ -17,15 +17,12 @@ module.exports = NodeHelper.create({
     }
   },
 
-  getChannelStatus: async function () {
+  getChannelStatus: async function (channel) {
     this.sendSocketNotification('CHANNEL_STATUS', { status: 'pending' });
 
     const browser = await playwright.chromium.launch();
     const context = await browser.newContext({ locale: 'en-US' });
     const page = await context.newPage();
-
-    // const channel = '@GoodGood';
-    const channel = '@LofiGirl';
 
     await page.goto(`https://www.youtube.com/${channel}/live`);
 

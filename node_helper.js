@@ -20,11 +20,23 @@ module.exports = NodeHelper.create({
   getChannelStatus: async function (channel) {
     this.sendSocketNotification('CHANNEL_STATUS', { status: 'pending' });
 
-    const browser = await playwright.chromium.launch();
-    const context = await browser.newContext({ locale: 'en-US' });
-    const page = await context.newPage();
+    let browser;
+    let page;
 
-    await page.goto(`https://www.youtube.com/${channel}/live`);
+    try {
+      browser = await playwright.chromium.launch();
+      const context = await browser.newContext({ locale: 'en-US' });
+      page = await context.newPage();
+
+      await page.goto(`https://www.youtube.com/${channel}/live`);
+    } catch {
+      this.sendSocketNotification('CHANNEL_STATUS', {
+        status: 'ERROR',
+        message: "Couldn't start headless browser or navigate to page",
+      });
+
+      return;
+    }
 
     try {
       await page.getByRole('button', { name: 'Reject all' }).click();
@@ -42,7 +54,16 @@ module.exports = NodeHelper.create({
 
     try {
       await streamingLocator.waitFor({ timeout: 10000 });
+    } catch {
+      this.sendSocketNotification('CHANNEL_STATUS', {
+        status: 'DONE',
+        streaming: false,
+      });
 
+      return;
+    }
+
+    try {
       const metaNode = await page.$('[itemprop=videoId]');
       const videoId = await metaNode.getAttribute('content');
 
@@ -51,10 +72,11 @@ module.exports = NodeHelper.create({
         streaming: true,
         videoId,
       });
+
+      //TODO: start streaming url: https://www.youtube.com/embed/${videoId}
     } catch {
       this.sendSocketNotification('CHANNEL_STATUS', {
-        status: 'DONE',
-        streaming: false,
+        status: 'DONE-ISH',
       });
     }
 

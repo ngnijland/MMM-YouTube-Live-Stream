@@ -33,8 +33,10 @@ Module.register('MMM-YouTube-Live-Stream', {
           return;
         }
 
-        if (payload.status === 'DONE') {
-          Log.info(`Channel is ${payload.streaming ? '' : 'not '}streaming`);
+        if (payload.status === 'DONE' && !payload.streaming) {
+          Log.info('Channel is not streaming');
+        } else if (payload.streaming) {
+          console.log(`Channel is streaming with video id: ${payload.videoId}`);
         }
         break;
       }

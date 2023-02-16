@@ -32,7 +32,7 @@ module.exports = NodeHelper.create({
       this.sendSocketNotification('CHANNEL_STATUS', {
         status: 'ERROR',
         message:
-          'Playwright couldn\'t cick "Reject all" in cookie notice. Maybe the YouTube made changes in the page?',
+          'Playwright couldn\'t click "Reject all" in cookie notice. Maybe the YouTube made changes in the page?',
       });
     }
 
@@ -40,20 +40,24 @@ module.exports = NodeHelper.create({
       .locator('#description-inner')
       .getByText(/^Started streaming on/);
 
-    let streaming;
-
     try {
       await streamingLocator.waitFor({ timeout: 10000 });
-      streaming = true;
+
+      const metaNode = await page.$('[itemprop=videoId]');
+      const videoId = await metaNode.getAttribute('content');
+
+      this.sendSocketNotification('CHANNEL_STATUS', {
+        status: 'DONE',
+        streaming: true,
+        videoId,
+      });
     } catch {
-      streaming = false;
+      this.sendSocketNotification('CHANNEL_STATUS', {
+        status: 'DONE',
+        streaming: false,
+      });
     }
 
     await browser.close();
-
-    this.sendSocketNotification('CHANNEL_STATUS', {
-      status: 'DONE',
-      streaming,
-    });
   },
 });

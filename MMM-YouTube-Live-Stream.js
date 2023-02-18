@@ -14,6 +14,7 @@ Module.register('MMM-YouTube-Live-Stream', {
     Log.info(`Starting module: ${this.name}`);
 
     this.channel = this.config.channel;
+    this.videoId;
 
     if (typeof this.channel !== 'string' && this.channel !== '') {
       Log.error(
@@ -33,9 +34,11 @@ Module.register('MMM-YouTube-Live-Stream', {
           return;
         }
 
-        if (payload.status === 'DONE') {
-          Log.info(`Channel is ${payload.streaming ? '' : 'not '}streaming`);
+        if (payload.status === 'DONE' && payload.streaming) {
+          this.videoId = payload.videoId;
+          this.updateDom();
         }
+
         break;
       }
       default: {
@@ -47,9 +50,15 @@ Module.register('MMM-YouTube-Live-Stream', {
   },
 
   getDom: function () {
-    const wrapper = document.createElement('div');
+    if (!this.videoId) {
+      return document.createElement('div');
+    }
 
-    return wrapper;
+    const iframe = document.createElement('iframe');
+    iframe.className = 'MMM-YouTube-LiveStream__iframe';
+    iframe.src = `https://www.youtube.com/embed/${this.videoId}?autoplay=1`;
+
+    return iframe;
   },
 
   getStyles: function () {

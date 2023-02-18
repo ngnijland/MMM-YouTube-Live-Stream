@@ -18,7 +18,7 @@ module.exports = NodeHelper.create({
   },
 
   getChannelStatus: async function (channel) {
-    this.sendSocketNotification('CHANNEL_STATUS', { status: 'pending' });
+    this.sendSocketNotification('CHANNEL_STATUS', { status: 'LOADING' });
 
     let browser;
     let page;
@@ -72,11 +72,11 @@ module.exports = NodeHelper.create({
         streaming: true,
         videoId,
       });
-
-      //TODO: start streaming url: https://www.youtube.com/embed/${videoId}
     } catch {
       this.sendSocketNotification('CHANNEL_STATUS', {
-        status: 'DONE-ISH',
+        status: 'ERROR',
+        message:
+          'Something went wrong with fetching the videoId from live stream.',
       });
     }
 

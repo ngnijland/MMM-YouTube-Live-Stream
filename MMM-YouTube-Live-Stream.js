@@ -15,6 +15,7 @@ Module.register('MMM-YouTube-Live-Stream', {
 
     this.channel = this.config.channel;
     this.videoId;
+    this.status = 'loading';
 
     if (typeof this.channel !== 'string' && this.channel !== '') {
       Log.error(
@@ -31,11 +32,15 @@ Module.register('MMM-YouTube-Live-Stream', {
       case 'CHANNEL_STATUS': {
         if (payload.status === 'ERROR') {
           Log.error(payload.message);
+          this.status = 'error';
           return;
         }
 
-        if (payload.status === 'DONE' && payload.streaming) {
-          this.videoId = payload.videoId;
+        if (payload.status === 'DONE') {
+          if (payload.streaming) {
+            this.videoId = payload.videoId;
+          }
+          this.status = 'idle';
           this.updateDom();
         }
 
@@ -50,8 +55,21 @@ Module.register('MMM-YouTube-Live-Stream', {
   },
 
   getDom: function () {
+    const root = document.createElement('div');
+
+    if (this.status === 'loading') {
+      root.innerText = 'Checking channel...';
+      return root;
+    }
+
+    if (this.status === 'error') {
+      root.innerText = 'An error occured. Check the console for more info.';
+      return root;
+    }
+
     if (!this.videoId) {
-      return document.createElement('div');
+      root.innerText = 'Channel is not streaming...';
+      return root;
     }
 
     const iframe = document.createElement('iframe');

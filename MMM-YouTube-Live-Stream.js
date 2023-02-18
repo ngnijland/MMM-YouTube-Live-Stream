@@ -50,7 +50,12 @@ Module.register('MMM-YouTube-Live-Stream', {
   },
 
   getDom: function () {
+    if (!this.videoId) {
+      return document.createElement('div');
+    }
+
     const iframe = document.createElement('iframe');
+    iframe.className = 'MMM-YouTube-LiveStream__iframe';
     iframe.src = `https://www.youtube.com/embed/${this.videoId}?autoplay=1`;
 
     return iframe;

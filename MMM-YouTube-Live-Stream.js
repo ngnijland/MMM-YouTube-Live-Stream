@@ -14,8 +14,9 @@ Module.register('MMM-YouTube-Live-Stream', {
     Log.info(`Starting module: ${this.name}`);
 
     this.channel = this.config.channel;
-    this.videoId;
+    this.interval;
     this.status = 'loading';
+    this.videoId;
 
     if (typeof this.channel !== 'string' && this.channel !== '') {
       Log.error(
@@ -24,7 +25,7 @@ Module.register('MMM-YouTube-Live-Stream', {
       return;
     }
 
-    this.sendSocketNotification('GET_CHANNEL_STATUS', this.channel);
+    this.startInterval();
   },
 
   socketNotificationReceived: function (notification, payload) {
@@ -37,9 +38,16 @@ Module.register('MMM-YouTube-Live-Stream', {
         }
 
         if (payload.status === 'DONE') {
+          if (payload.streaming && this.videoId) {
+            return;
+          }
+
           if (payload.streaming) {
             this.videoId = payload.videoId;
+          } else {
+            this.videoId = '';
           }
+
           this.status = 'idle';
           this.updateDom();
         }
@@ -52,6 +60,16 @@ Module.register('MMM-YouTube-Live-Stream', {
         );
       }
     }
+  },
+
+  startInterval: function () {
+    clearInterval(this.interval);
+
+    this.sendSocketNotification('GET_CHANNEL_STATUS', this.channel);
+
+    this.interval = setInterval(() => {
+      this.sendSocketNotification('GET_CHANNEL_STATUS', this.channel);
+    }, 60000);
   },
 
   getDom: function () {

@@ -17,7 +17,7 @@ module.exports = NodeHelper.create({
     }
   },
 
-  getChannelStatus: async function (channel) {
+  getChannelStatus: async function ({ channel, timeout }) {
     this.sendSocketNotification('CHANNEL_STATUS', { status: 'LOADING' });
 
     let browser;
@@ -27,12 +27,21 @@ module.exports = NodeHelper.create({
       browser = await playwright.chromium.launch();
       const context = await browser.newContext({ locale: 'en-US' });
       page = await context.newPage();
+    } catch {
+      this.sendSocketNotification('CHANNEL_STATUS', {
+        status: 'ERROR',
+        message: "Couldn't start headless browser.",
+      });
 
+      return;
+    }
+
+    try {
       await page.goto(`https://www.youtube.com/${channel}/live`);
     } catch {
       this.sendSocketNotification('CHANNEL_STATUS', {
         status: 'ERROR',
-        message: "Couldn't start headless browser or navigate to page",
+        message: 'No internet connection...',
       });
 
       return;
@@ -53,7 +62,7 @@ module.exports = NodeHelper.create({
       .getByText(/^Started streaming on/);
 
     try {
-      await streamingLocator.waitFor({ timeout: 10000 });
+      await streamingLocator.waitFor({ timeout });
     } catch {
       this.sendSocketNotification('CHANNEL_STATUS', {
         status: 'DONE',

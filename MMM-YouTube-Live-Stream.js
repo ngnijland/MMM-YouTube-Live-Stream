@@ -8,14 +8,20 @@
  */
 
 Module.register('MMM-YouTube-Live-Stream', {
-  defaults: {},
+  defaults: {
+    updatesEvery: 5 * 60 * 1000,
+    notStreamingTimeout: 10 * 1000,
+  },
 
   start: function () {
     Log.info(`Starting module: ${this.name}`);
 
     this.channel = this.config.channel;
-    this.videoId;
+    this.interval;
     this.status = 'loading';
+    this.videoId;
+    this.updatesEvery = this.config.updatesEvery;
+    this.notStreamingTimeout = this.config.notStreamingTimeout;
 
     if (typeof this.channel !== 'string' && this.channel !== '') {
       Log.error(
@@ -24,7 +30,30 @@ Module.register('MMM-YouTube-Live-Stream', {
       return;
     }
 
-    this.sendSocketNotification('GET_CHANNEL_STATUS', this.channel);
+    if (typeof this.notStreamingTimeout !== 'number') {
+      Log.error(
+        `Configuration error: "notStreamingTimeout" should be a number, but is: "${typeof this
+          .notStreamingTimeout}". Falling back to 10 seconds (${10 * 1000}).`
+      );
+      this.updatesEvery = 10 * 1000;
+    }
+
+    if (typeof this.updatesEvery !== 'number') {
+      Log.error(
+        `Configuration error: "updatesEvery" should be a number, but is: "${typeof this
+          .updatesEvery}". Falling back to 5 minutes (${5 * 60 * 1000}).`
+      );
+      this.updatesEvery = 5 * 60 * 1000;
+    }
+
+    if (this.notStreamingTimeout > this.updatesEvery) {
+      Log.error(
+        'Configuration error: "updatesEvery" should be bigger than the "notStreamingTimeout" config, but is smaller. Please change this in the MagicMirror config.'
+      );
+      return;
+    }
+
+    this.startInterval();
   },
 
   socketNotificationReceived: function (notification, payload) {
@@ -33,13 +62,21 @@ Module.register('MMM-YouTube-Live-Stream', {
         if (payload.status === 'ERROR') {
           Log.error(payload.message);
           this.status = 'error';
+          this.updateDom();
           return;
         }
 
         if (payload.status === 'DONE') {
+          if (payload.streaming && this.videoId) {
+            return;
+          }
+
           if (payload.streaming) {
             this.videoId = payload.videoId;
+          } else {
+            this.videoId = '';
           }
+
           this.status = 'idle';
           this.updateDom();
         }
@@ -52,6 +89,22 @@ Module.register('MMM-YouTube-Live-Stream', {
         );
       }
     }
+  },
+
+  startInterval: function () {
+    clearInterval(this.interval);
+
+    this.sendSocketNotification('GET_CHANNEL_STATUS', {
+      channel: this.channel,
+      timeout: this.notStreamingTimeout,
+    });
+
+    this.interval = setInterval(() => {
+      this.sendSocketNotification('GET_CHANNEL_STATUS', {
+        channel: this.channel,
+        timeout: this.notStreamingTimeout,
+      });
+    }, this.updatesEvery);
   },
 
   getDom: function () {

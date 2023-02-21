@@ -8,7 +8,10 @@
  */
 
 Module.register('MMM-YouTube-Live-Stream', {
-  defaults: {},
+  defaults: {
+    updatesEvery: 5 * 60 * 1000,
+    notStreamingTimeout: 10 * 1000,
+  },
 
   start: function () {
     Log.info(`Starting module: ${this.name}`);
@@ -17,10 +20,35 @@ Module.register('MMM-YouTube-Live-Stream', {
     this.interval;
     this.status = 'loading';
     this.videoId;
+    this.updatesEvery = this.config.updatesEvery;
+    this.notStreamingTimeout = this.config.notStreamingTimeout;
 
     if (typeof this.channel !== 'string' && this.channel !== '') {
       Log.error(
         `"${this.channel}" is not a supported value. Please enter a valid channel name`
+      );
+      return;
+    }
+
+    if (typeof this.notStreamingTimeout !== 'number') {
+      Log.error(
+        `Configuration error: "notStreamingTimeout" should be a number, but is: "${typeof this
+          .notStreamingTimeout}". Falling back to 10 seconds (${10 * 1000}).`
+      );
+      this.updatesEvery = 10 * 1000;
+    }
+
+    if (typeof this.updatesEvery !== 'number') {
+      Log.error(
+        `Configuration error: "updatesEvery" should be a number, but is: "${typeof this
+          .updatesEvery}". Falling back to 5 minutes (${5 * 60 * 1000}).`
+      );
+      this.updatesEvery = 5 * 60 * 1000;
+    }
+
+    if (this.notStreamingTimeout > this.updatesEvery) {
+      Log.error(
+        'Configuration error: "updatesEvery" should be bigger than the "notStreamingTimeout" config, but is smaller. Please change this in the MagicMirror config.'
       );
       return;
     }
@@ -34,6 +62,7 @@ Module.register('MMM-YouTube-Live-Stream', {
         if (payload.status === 'ERROR') {
           Log.error(payload.message);
           this.status = 'error';
+          this.updateDom();
           return;
         }
 
@@ -65,11 +94,17 @@ Module.register('MMM-YouTube-Live-Stream', {
   startInterval: function () {
     clearInterval(this.interval);
 
-    this.sendSocketNotification('GET_CHANNEL_STATUS', this.channel);
+    this.sendSocketNotification('GET_CHANNEL_STATUS', {
+      channel: this.channel,
+      timeout: this.notStreamingTimeout,
+    });
 
     this.interval = setInterval(() => {
-      this.sendSocketNotification('GET_CHANNEL_STATUS', this.channel);
-    }, 60000);
+      this.sendSocketNotification('GET_CHANNEL_STATUS', {
+        channel: this.channel,
+        timeout: this.notStreamingTimeout,
+      });
+    }, this.updatesEvery);
   },
 
   getDom: function () {

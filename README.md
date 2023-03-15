@@ -16,7 +16,21 @@ cd ~/MagicMirror/modules
 git clone https://github.com/ngnijland/MMM-YouTube-Live-Stream.git
 ```
 
-3. Add this module to the modules array in the MagicMirror `config/config.js` file, like this:
+3. Install module dependencies
+
+```bash
+npm install
+```
+
+**Note:** Run this inside the `modules/MMM-YouTube-Live-Stream` folder.
+
+4. Install Chromium
+
+```bash
+npx playwright install
+```
+
+5. Add this module to the modules array in the MagicMirror `config/config.js` file, like this:
 
 ```javascript
 modules: [
